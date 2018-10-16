@@ -1,0 +1,432 @@
+{
+  "Liberators": {
+    "movement": 5,
+    "save": 4,
+    "bravery": 6,
+    "wounds": 2,
+    "unit_types": [
+      "Battleline"
+    ],
+    "models": {
+      "Liberator": {
+        "weapons": {}
+      },
+      "Liberator Prime": {
+        "weapons": {}
+      }
+    }
+  },
+  "Megaboss on Maw-Krusha": {
+    "movement": 12,
+    "save": 3,
+    "bravery": 8,
+    "wounds": 14,
+    "unit_types": [
+      "Hero",
+      "Monster"
+    ],
+    "models": {
+      "Megaboss on Maw-Krusha": {
+        "weapons": {}
+      }
+    }
+  },
+  "Glade Guard": {
+    "movement": 6,
+    "save": 6,
+    "bravery": 6,
+    "wounds": 1,
+    "unit_types": [
+      "Battleline"
+    ],
+    "models": {
+      "Guard": {
+        "weapons": {
+          "Longbows": {
+            "range": 20,
+            "attacks": 1,
+            "to_hit": 4,
+            "to_wound": 4,
+            "rend": 0,
+            "damage": 1
+          },
+          "Glade Blades": {
+            "range": 1,
+            "attacks": 1,
+            "to_hit": 5,
+            "to_wound": 5,
+            "rend": 0,
+            "damage": 1
+          }
+        }
+      },
+      "Lord's Bowman": {
+        "weapons": {
+          "Longbow": {
+            "range": 20,
+            "attacks": 2,
+            "to_hit": 4,
+            "to_wound": 4,
+            "rend": 0,
+            "damage": 1
+          },
+          "Glade Blade": {
+            "range": 1,
+            "attacks": 1,
+            "to_hit": 5,
+            "to_wound": 5,
+            "rend": 0,
+            "damage": 1
+          }
+        }
+      }
+    }
+  },
+  "Arkanaut Company": {
+    "movement": 4,
+    "save": 5,
+    "bravery": 6,
+    "wounds": 1,
+    "unit_types": [
+      "Battleline"
+    ],
+    "models": {
+      "Arkanaut": {
+        "weapons": {
+          "Privateer Pistol": {
+            "range": 12,
+            "attacks": 2,
+            "to_hit": 4,
+            "to_wound": 4,
+            "rend": 0,
+            "damage": 1
+          },
+          "Arkanaut Cutter": {
+            "range": 1,
+            "attacks": 1,
+            "to_hit": 4,
+            "to_wound": 4,
+            "rend": 0,
+            "damage": 1
+          }
+        }
+      },
+      "Arkanaut with Skyhook": {
+        "weapons": {
+          "Light Skyhook": {
+            "range": 24,
+            "attacks": 1,
+            "to_hit": 4,
+            "to_wound": 3,
+            "rend": 2,
+            "damage": "d3"
+          },
+          "Gun Butt": {
+            "range": 1,
+            "attacks": 1,
+            "to_hit": 4,
+            "to_wound": 5,
+            "rend": 0,
+            "damage": 1
+          }
+        }
+      },
+      "Arkanaut Captain": {
+        "weapons": {
+          "Captain's Pistol": {
+            "range": 12,
+            "attacks": 2,
+            "to_hit": 4,
+            "to_wound": 3,
+            "rend": 0,
+            "damage": 1
+          },
+          "Captain's Cutter": {
+            "range": 1,
+            "attacks": 2,
+            "to_hit": 4,
+            "to_wound": 4,
+            "rend": 0,
+            "damage": 1
+          }
+        }
+      }
+    }
+  },
+  "Endrinriggers": {
+    "movement": 12,
+    "save": 4,
+    "bravery": 7,
+    "wounds": 2,
+    "unit_types": [],
+    "models": {
+      "Endrinrigger": {
+        "weapons": {
+          "Rapid-fire Rivet Gun": {
+            "range": 12,
+            "attacks": 3,
+            "to_hit": 3,
+            "to_wound": 4,
+            "rend": 1,
+            "damage": 1
+          },
+          "Aethermatic Saw": {
+            "range": 1,
+            "attacks": 1,
+            "to_hit": 3,
+            "to_wound": 2,
+            "rend": 2,
+            "damage": "d3"
+          }
+        }
+      },
+      "Mizzenmaster": {
+        "weapons": {
+          "Rapid-fire Rivet Gun": {
+            "range": 12,
+            "attacks": 3,
+            "to_hit": 3,
+            "to_wound": 4,
+            "rend": 1,
+            "damage": 1
+          },
+          "Aethermatic Saw": {
+            "range": 1,
+            "attacks": 2,
+            "to_hit": 3,
+            "to_wound": 2,
+            "rend": 2,
+            "damage": "d3"
+          }
+        }
+      },
+      "Endrinrigger with Grapnel Launcher": {
+        "weapons": {
+          "Gun Butt": {
+            "range": 1,
+            "attacks": 1,
+            "to_hit": 4,
+            "to_wound": 5,
+            "rend": 0,
+            "damage": 1
+          }
+        }
+      }
+    }
+  },
+  "Brokk Grugsson": {
+    "movement": 12,
+    "save": 3,
+    "bravery": 8,
+    "wounds": 8,
+    "unit_types": [
+      "Hero"
+    ],
+    "models": {
+      "Brokk": {
+        "weapons": {
+          "Grungsson's Boast": {
+            "range": 18,
+            "attacks": 2,
+            "to_hit": 3,
+            "to_wound": 2,
+            "rend": 1,
+            "damage": "d3"
+          },
+          "Magnate's Charter": {
+            "range": 18,
+            "attacks": 3,
+            "to_hit": 3,
+            "to_wound": 3,
+            "rend": 1,
+            "damage": 1
+          },
+          "Aetherblasters": {
+            "range": 9,
+            "attacks": 2,
+            "to_hit": 3,
+            "to_wound": 4,
+            "rend": 0,
+            "damage": 1
+          },
+          "Aethermatic Saw": {
+            "range": 1,
+            "attacks": 4,
+            "to_hit": 3,
+            "to_wound": 2,
+            "rend": 2,
+            "damage": "d3"
+          }
+        }
+      }
+    }
+  },
+  "Rat Ogors": {
+    "movement": 6,
+    "save": 5,
+    "bravery": 5,
+    "wounds": 4,
+    "unit_types": [],
+    "models": {
+      "Rat Ogor": {
+        "weapons": {
+          "Warpfire Gun": {
+            "range": 16,
+            "attacks": 1,
+            "to_hit": 5,
+            "to_wound": 3,
+            "rend": 1,
+            "damage": "d3"
+          },
+          "Tearing Claws, Blades, and Fangs": {
+            "range": 1,
+            "attacks": 4,
+            "to_hit": 4,
+            "to_wound": 3,
+            "rend": 1,
+            "damage": 2
+          }
+        }
+      }
+    }
+  },
+  "Dragonlord": {
+    "movement": 14,
+    "save": 4,
+    "bravery": 8,
+    "wounds": 14,
+    "unit_types": [
+      "Hero",
+      "Monster"
+    ],
+    "models": {
+      "Dragonlord": {
+        "weapons": {
+          "Reaver Bow": {
+            "range": 20,
+            "attacks": 1,
+            "to_hit": 3,
+            "to_wound": 3,
+            "rend": 0,
+            "damage": 1
+          },
+          "Dragon Blade": {
+            "range": 2,
+            "attacks": 4,
+            "to_hit": 3,
+            "to_wound": 3,
+            "rend": 1,
+            "damage": "d3"
+          },
+          "Dragon's Claws": {
+            "range": 2,
+            "attacks": 6,
+            "to_hit": 4,
+            "to_wound": 3,
+            "rend": 1,
+            "damage": 2
+          },
+          "Dragon's Fearsome Jaws": {
+            "range": 3,
+            "attacks": 3,
+            "to_hit": 4,
+            "to_wound": 2,
+            "rend": 2,
+            "damage": "d6"
+          }
+        }
+      }
+    }
+  },
+  "Anointed on Frostheart Phoenix": {
+    "movement": 16,
+    "save": 5,
+    "bravery": 9,
+    "wounds": 12,
+    "unit_types": [],
+    "models": {
+      "Anointed on Frostheart Phoenix": {
+        "weapons": {
+          "Ice-Hard Talons": {
+            "range": 2,
+            "attacks": 8,
+            "to_hit": 3,
+            "to_wound": 3,
+            "rend": 1,
+            "damage": 2
+          },
+          "Great Phoenix Halberd": {
+            "range": 2,
+            "attacks": 4,
+            "to_hit": 3,
+            "to_wound": 3,
+            "rend": 1,
+            "damage": 1
+          }
+        }
+      }
+    }
+  },
+  "Wildwood Rangers": {
+    "movement": 6,
+    "save": 5,
+    "bravery": 7,
+    "wounds": 1,
+    "unit_types": [],
+    "models": {
+      "Wildwood Ranger": {
+        "weapons": {
+          "Ranger's Draich": {
+            "range": 2,
+            "attacks": 2,
+            "to_hit": 3,
+            "to_wound": 4,
+            "rend": 1,
+            "damage": 1
+          }
+        }
+      },
+      "Wildwood Warden": {
+        "weapons": {
+          "Warden's Draich": {
+            "range": 2,
+            "attacks": 3,
+            "to_hit": 3,
+            "to_wound": 4,
+            "rend": 1,
+            "damage": 1
+          }
+        }
+      }
+    }
+  },
+  "Sample": {
+    "movement": 6,
+    "save": 4,
+    "bravery": 6,
+    "wounds": 1,
+    "unit_types": [],
+    "models": {
+      "Sample": {
+        "weapons": {
+          "Sample Ranged Weapon": {
+            "range": 12,
+            "attacks": 1,
+            "to_hit": 4,
+            "to_wound": 4,
+            "rend": 0,
+            "damage": 1
+          },
+          "Sample Melee Weapon": {
+            "range": 1,
+            "attacks": 1,
+            "to_hit": 4,
+            "to_wound": 4,
+            "rend": 0,
+            "damage": 1
+          }
+        }
+      }
+    }
+  }
+}
