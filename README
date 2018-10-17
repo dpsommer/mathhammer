@@ -1,0 +1,5 @@
+Warhammer unit statistics
+
+Still very much a work-in-progress!
+
+To initialize the database, run ./data/database.py - it will find all .sql files in the project and run them in order.
