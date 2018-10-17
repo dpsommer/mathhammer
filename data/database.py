@@ -22,20 +22,20 @@ def read_schema(schema_file):
         conn.executescript(schema.read().decode('utf-8'))
 
 
-def fetch_one(table, value, field='name', order_by='id'):
+def fetch_one(table, value, field='id', order_by='id'):
     sql = "SELECT * FROM %s WHERE %s=? ORDER BY %s" % (table, field, order_by)
     cursor.execute(sql, (value,))
     return cursor.fetchone()
 
 
-def fetch_all(table, value, field='name'):
+def fetch_all(table, value, field='id'):
     sql = "SELECT * FROM %s WHERE %s=?" % (table, field)
     cursor.execute(sql, (value,))
     return cursor.fetchall()
 
 
 def get_unit_by_name(unit_name):
-    return fetch_one(table='units', value=unit_name)
+    return fetch_one(table='units', field='name', value=unit_name)
 
 
 def get_models_by_unit_id(unit_id):
@@ -48,7 +48,7 @@ def get_weapon_profiles_by_model_id(model_id):
 
 def get_weapon_profile_by_id(profile_id):
     _, _, weapon_name, weapon_range, attacks, to_hit, to_wound, rend, damage = \
-        fetch_one(table='weapon_profiles', field='id', value=profile_id)
+        fetch_one(table='weapon_profiles', value=profile_id)
 
     # Convert damage and attacks to integers or callbacks (random values e.g. d3 damage)
     try:
@@ -62,6 +62,16 @@ def get_weapon_profile_by_id(profile_id):
         attacks = getattr(DiceRoller, attacks)
 
     return weapon_name, weapon_range, attacks, to_hit, to_wound, rend, damage
+
+
+def get_unit_types_by_unit_id(unit_id):
+    return [unit_type for _, _, unit_type_id in fetch_all(table='units_unit_types', field='unit_id', value=unit_id)
+            for _, unit_type in fetch_all(table='unit_types', value=unit_type_id)]
+
+
+def get_keywords_by_unit_id(unit_id):
+    return [keyword for _, _, keyword_id in fetch_all(table='units_keywords', field='unit_id', value=unit_id)
+            for _, keyword in fetch_all(table='keywords', value=keyword_id)]
 
 
 def close():

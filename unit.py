@@ -4,15 +4,12 @@ from enum import Enum
 from functools import reduce
 from uuid import uuid4 as uuid
 
-from weapons import WeaponTypes
-
 UNITS = {}  # Global dictionary to hold all unit names + classes
 
 
 class UnitTypes(Enum):
     BATTLELINE = "Battleline"
-    HERO = "Hero"
-    MONSTER = "Monster"
+    LEADER = "Leader"
     BEHEMOTH = "Behemoth"
     ARTILLERY = "Artillery"
 
@@ -21,7 +18,7 @@ class Unit:
 
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, name, movement, save, bravery, wounds, models, unit_types=None):
+    def __init__(self, name, movement, save, bravery, wounds, models, unit_types=None, keywords=None):
         # TODO: implement damage tables
         self.name = name
         self.id = uuid()
@@ -31,6 +28,7 @@ class Unit:
         self.save = save
         self.models = models
         self.unit_types = unit_types or []
+        self.keywords = keywords or []
         self.model_counts = {}  # FIXME: there should be a better way to set the base count for models initially
         self.models_remaining = {}
         self.wounds_remaining = 0
@@ -67,6 +65,7 @@ class Unit:
         self.wounds_remaining += self.wounds * count
 
     def reset_buffs(self):
+        # TODO: these should be stored elsewhere as the profile is shared between instances of a unit
         for weapon_profile in self.weapon_profiles:
             weapon_profile.extra_attacks = 0
             weapon_profile.bonus_to_hit = 0

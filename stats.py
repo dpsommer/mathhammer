@@ -1,13 +1,37 @@
-import numbers
+import importlib
+import os
 import pkgutil
+import pyclbr
 from functools import reduce
 
-from unit import UnitTypes, UNITS
+import units
+
+from unit import UNITS
 from dice import DiceRoller
 from weapons import WeaponTypes
 
-for importer, modname, ispkg in pkgutil.walk_packages(path='./units'):
-    __import__(modname)
+
+def import_units(package):
+    """ Import all submodules of a module, recursively, including subpackages
+
+    :param package: package (name or actual module)
+    :type package: str | module
+    :rtype: dict[str, types.ModuleType]
+    """
+    if isinstance(package, str):
+        package = importlib.import_module(package)
+    for loader, name, is_pkg in pkgutil.walk_packages(path=package.__path__):
+        full_name = package.__name__ + '.' + name
+        module = importlib.import_module(full_name)
+        cls = [_.name for _ in pyclbr.readmodule(full_name).values()]
+        if cls:
+            # add each unit class to a global units dict
+            UNITS[module.UNIT_NAME] = getattr(module, cls[0])
+        if is_pkg:
+            import_units(full_name)
+
+# import all units
+import_units(units)
 
 
 def to_percentage(die_roll):
@@ -29,7 +53,7 @@ def average_damaging_hits(attacks, hits_on, wounds_on, rend, target_save):
 
 def calculate_damage(attacks, hits_on, wounds_on, rend, damage, target_save):
     hits = average_damaging_hits(attacks, hits_on, wounds_on, rend, target_save)
-    return (hits * damage if isinstance(damage, numbers.Number)
+    return (hits * damage if isinstance(damage, int)
             else reduce((lambda x, y: x + damage()), range(round(hits)), 0))
 
 
@@ -85,7 +109,7 @@ def simulate_damage(attacks, hits_on, wounds_on, rend, damage, target_save):
     roll_to_save = DiceRoller.roll(len([_ for _ in filter(lambda x: x >= wounds_on, roll_to_wound)]))
     print("Rolled %s, saves on %s+ (after rend)\n" % (roll_to_save, target_save + rend))
     wounding_hits = len([_ for _ in filter(lambda x: x < target_save + rend, roll_to_save)])
-    return (wounding_hits * damage if isinstance(damage, numbers.Number)
+    return (wounding_hits * damage if isinstance(damage, int)
             else reduce(lambda x, y: x + damage(), range(wounding_hits), 0))
 
 
@@ -195,11 +219,6 @@ def run():
 
     def herded_into_the_fray(self, target):
         self.weapon_profiles["Tearing Claws, Blades, and Fangs"].bonus_to_hit = 2
-
-    # Wildwood Rangers
-    def guardians_of_the_kindreds(self, target):
-        for profile in self.weapon_profiles.values():
-            profile.damage = 2 if UnitTypes.MONSTER in target.unit_types else 1
 
     # for unit in attacking_group:
     #     calculate_attacks_vs_targets(unit, target_group)
