@@ -21,6 +21,9 @@ class Unit:
 
     __metaclass__ = abc.ABCMeta
 
+    DEFAULT_CHARGE_DISTANCE = 12
+    DEFAULT_PILE_IN_DISTANCE = 3
+
     def __init__(self, name):
         unit_id, unit_name, movement, save, bravery, wounds = database.get_unit_by_name(name)
         models = {}
@@ -43,6 +46,10 @@ class Unit:
         self.model_counts = {}  # FIXME: there should be a better way to set the base count for models initially
         self.models_remaining = {}
         self.wounds_remaining = 0
+        self.charge_distance = Unit.DEFAULT_CHARGE_DISTANCE
+        self.pile_in_distance = Unit.DEFAULT_PILE_IN_DISTANCE
+        self.in_combat = False
+        self.immune_to_battleshock = False
         self.abilities = []
         self.buffs = {}
         self.weapon_profiles = reduce(lambda x, y: x + y.weapons, self.models.values(), [])
@@ -86,6 +93,8 @@ class Unit:
         self.reset_buffs()
         self.models_remaining = self.model_counts.copy()
         self.wounds_remaining = self.wounds
+        self.charge_distance = Unit.DEFAULT_CHARGE_DISTANCE
+        self.immune_to_battleshock = False
 
     def assign_wounds(self, damage):
         models_slain, spill = divmod(damage, self.wounds)
