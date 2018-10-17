@@ -1,8 +1,11 @@
 import abc
-
 from enum import Enum
 from functools import reduce
 from uuid import uuid4 as uuid
+
+from data import database
+from model import Model
+from weapons import WeaponProfile
 
 UNITS = {}  # Global dictionary to hold all unit names + classes
 
@@ -18,7 +21,15 @@ class Unit:
 
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, name, movement, save, bravery, wounds, models, unit_types=None, keywords=None):
+    def __init__(self, name):
+        unit_id, unit_name, movement, save, bravery, wounds = database.get_unit_by_name(name)
+        models = {}
+        for model_id, unit_id, model_name, model_type in database.get_models_by_unit_id(unit_id):
+            profiles = database.get_weapon_profiles_by_model_id(model_id)
+            models[model_name] = Model(name=model_name, model_type=model_type, weapons=[])
+            for _, _, profile_id in profiles:
+                models[model_name].weapons.append(WeaponProfile(*database.get_weapon_profile_by_id(profile_id)))
+
         # TODO: implement damage tables
         self.name = name
         self.id = uuid()
@@ -27,8 +38,8 @@ class Unit:
         self.wounds = wounds
         self.save = save
         self.models = models
-        self.unit_types = unit_types or []
-        self.keywords = keywords or []
+        self.unit_types = database.get_unit_types_by_unit_id(unit_id)
+        self.keywords = database.get_keywords_by_unit_id(unit_id)
         self.model_counts = {}  # FIXME: there should be a better way to set the base count for models initially
         self.models_remaining = {}
         self.wounds_remaining = 0
@@ -74,7 +85,7 @@ class Unit:
     def reset(self):
         self.reset_buffs()
         self.models_remaining = self.model_counts.copy()
-        self.wounds_remaining = self.remaining_models() * self.wounds
+        self.wounds_remaining = self.wounds
 
     def assign_wounds(self, damage):
         models_slain, spill = divmod(damage, self.wounds)
@@ -85,15 +96,28 @@ class Unit:
             # Allocate remaining wounds and account for overkill
             self.wounds_remaining = self.wounds + self.wounds_remaining
 
+    def flee(self, fleeing_models):
+        self.remove_models(fleeing_models)
+        self.wounds_remaining = self.wounds
+
     def remaining_models(self):
         return sum(self.models_remaining.values())
 
-    @abc.abstractmethod
-    def init_abilities(self):
-        pass
+    def remove_models(self, models_slain):
+        for _ in range(models_slain):
+            model_to_remove = None
+            for model, count in self.models_remaining.items():
+                if count <= 0:
+                    continue
+                # Remove base models first, then special models, then unit leaders
+                if (model_to_remove is None or model.type == Model.BASE_TYPE
+                        or (model_to_remove.type == Model.LEADER_TYPE and model.type == Model.SPECIAL_TYPE)):
+                    model_to_remove = model
+            if model_to_remove:
+                self.models_remaining[model_to_remove] -= 1
 
     @abc.abstractmethod
-    def remove_models(self, models_slain):
+    def init_abilities(self):
         pass
 
 

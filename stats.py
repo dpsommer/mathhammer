@@ -1,11 +1,9 @@
 import importlib
-import os
 import pkgutil
 import pyclbr
 from functools import reduce
 
 import units
-
 from unit import UNITS
 from dice import DiceRoller
 from weapons import WeaponTypes
@@ -130,14 +128,26 @@ def simulate_attack(attacking_unit, defending_unit, distance, weapon_type=Weapon
     return total_damage
 
 
+def battleshock(unit, models_lost):
+    battleshock_test = models_lost + DiceRoller.d6()
+    if unit.bravery < battleshock_test:
+        fleeing_units = min(battleshock_test - unit.bravery, unit.remaining_models())
+        print('%d %s models flee!\n' % (fleeing_units, unit.name))
+        unit.flee(fleeing_units)
+
+
 # TODO: add flag to remove output (switch to logging?)
 def simulate_combat(attacking_unit, defending_unit, distance=3):
     # returns the victorious unit object
+    attacking_unit_models_lost = defending_unit_models_lost = 0
+
     if distance > 3:
         distance = max(distance - attacking_unit.movement, 3)
 
     print("%s's shooting phase:\n" % attacking_unit.name)
-    defending_unit.assign_wounds(simulate_attack(attacking_unit, defending_unit, distance, WeaponTypes.SHOOTING))
+    wounds = simulate_attack(attacking_unit, defending_unit, distance, WeaponTypes.SHOOTING)
+    defending_unit.assign_wounds(wounds)
+    defending_unit_models_lost += wounds
 
     if defending_unit.remaining_models() <= 0:
         print("%s was slain!" % defending_unit.name)
@@ -156,14 +166,36 @@ def simulate_combat(attacking_unit, defending_unit, distance=3):
 
     if distance < 3:
         print("\n%s's combat phase:\n" % attacking_unit.name)
-        defending_unit.assign_wounds(simulate_attack(attacking_unit, defending_unit, distance))
+        wounds = simulate_attack(attacking_unit, defending_unit, distance)
+        defending_unit.assign_wounds(wounds)
+        defending_unit_models_lost += wounds
+
         if defending_unit.remaining_models() <= 0:
             print("%s was slain!" % defending_unit.name)
             return attacking_unit
-        attacking_unit.assign_wounds(simulate_attack(defending_unit, attacking_unit, distance))
+
+        wounds = simulate_attack(defending_unit, attacking_unit, distance)
+        attacking_unit.assign_wounds(wounds)
+        attacking_unit_models_lost += wounds
+
         if attacking_unit.remaining_models() <= 0:
             print("%s was slain!" % attacking_unit.name)
             return defending_unit
+
+    print("Battleshock phase:\n")
+    if defending_unit_models_lost > 0:
+        battleshock(defending_unit, defending_unit_models_lost)
+
+    if defending_unit.remaining_models() <= 0:
+        print("%s was slain!" % defending_unit.name)
+        return attacking_unit
+
+    if attacking_unit_models_lost > 0:
+        battleshock(attacking_unit, attacking_unit_models_lost)
+
+    if attacking_unit.remaining_models() <= 0:
+        print("%s was slain!" % attacking_unit.name)
+        return defending_unit
 
     print("\n%s\n" % ("-" * 105))
     return simulate_combat(defending_unit, attacking_unit, distance=distance)
@@ -250,7 +282,7 @@ def run():
     run_simulation(
         attacking_unit=attacking_unit,
         defending_unit=defending_unit,
-        simulations_to_run=100,  # simulations,
+        simulations_to_run=10,  # simulations,
         distance=10,  # distance
     )
 
