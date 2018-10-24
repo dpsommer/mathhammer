@@ -1,40 +1,13 @@
-import importlib
 import math
-import pkgutil
-import pyclbr
 from copy import deepcopy
 from enum import Enum
 from functools import reduce
 from itertools import cycle
 from random import choice, randint
-from uuid import uuid4 as uuid
 
-import units
-from unit import Unit, UNITS
+from unit import Unit
 from dice import DiceRoller
 from weapons import WeaponTypes
-
-
-def import_units(package):
-    """ Import all submodules of a module, recursively, including subpackages
-
-    :param package: package (name or actual module)
-    :type package: str | module
-    :rtype: dict[str, types.ModuleType]
-    """
-    if isinstance(package, str):
-        package = importlib.import_module(package)
-    for loader, name, is_pkg in pkgutil.walk_packages(path=package.__path__):
-        full_name = package.__name__ + '.' + name
-        module = importlib.import_module(full_name)
-        cls = [_.name for _ in pyclbr.readmodule(full_name).values()]
-        if cls:
-            # add each unit class to a global units dict
-            UNITS[module.UNIT_NAME] = getattr(module, cls[0])
-        if is_pkg:
-            import_units(full_name)
-
-import_units(units)
 
 
 def to_percentage(die_roll):
@@ -61,35 +34,39 @@ def calculate_damage(attacks, hits_on, wounds_on, rend, damage, target_save):
 
 
 def print_average_shooting_result(attacking_unit, target):
-    attacks = attacking_unit.shooting_attacks()
-    if attacks:
-        print("\nShooting phase:")
-    for weapon, profile in attacks:
-        damage = calculate_damage(profile.count * profile.attacks + profile.extra_attacks,
-                                  profile.to_hit - profile.bonus_to_hit, profile.to_wound, profile.rend,
-                                  profile.damage, target.save)
-        print("%40s |%30s\" |%30.2f" % (weapon, profile.weapon_range, damage))
+    for model, count in attacking_unit.models_remaining.items():
+        for weapon in model.weapons:
+            if weapon.weapon_type == WeaponTypes.SHOOTING:
+                # FIXME: attacks should be averaged (if a weapon has d6 attacks, for example)
+                attacks = weapon.attacks if type(weapon.attacks) is int else weapon.attacks()
+                damage = calculate_damage(count * attacks + weapon.extra_attacks,
+                                          weapon.to_hit - weapon.bonus_to_hit,
+                                          weapon.to_wound - weapon.bonus_to_wound,
+                                          weapon.rend, weapon.damage, target.save)
+                print("%40s |%30s\" |%30.2f" % (weapon.name, weapon.weapon_range, damage))
 
 
 def print_average_combat_results(attacking_unit, target):
-    attacks = attacking_unit.combat_attacks()
-    if attacks:
-        print("\nCombat phase:")
-    for weapon, profile in attacks:
-        damage = calculate_damage(profile.count * profile.attacks + profile.extra_attacks,
-                                  profile.to_hit - profile.bonus_to_hit, profile.to_wound, profile.rend,
-                                  profile.damage, target.save)
-        print("%40s |%30s\" |%30.2f" % (weapon, profile.weapon_range, damage))
+    for model, count in attacking_unit.models_remaining.items():
+        for weapon in model.weapons:
+            if weapon.weapon_type == WeaponTypes.COMBAT:
+                # FIXME: attacks should be averaged (if a weapon has d6 attacks, for example)
+                attacks = weapon.attacks if type(weapon.attacks) is int else weapon.attacks()
+                damage = calculate_damage(count * attacks + weapon.extra_attacks,
+                                          weapon.to_hit - weapon.bonus_to_hit,
+                                          weapon.to_wound - weapon.bonus_to_wound,
+                                          weapon.rend, weapon.damage, target.save)
+                print("%40s |%30s\" |%30.2f" % (weapon.name, weapon.weapon_range, damage))
 
 
 def calculate_attacks_vs_target(attacking_unit, target, buff=None):
     attacking_unit.reset_buffs()
     for ability in attacking_unit.abilities:
-        ability(attacking_unit, target)
+        ability(target)
     print("Attacks for %s against %s (%d+ save)" % (attacking_unit.name, target.name, target.save))
     if buff:
         print(" with %s" % buff[0])
-        buff[1](attacking_unit, target)
+        buff[1](target)
     print("\n%40s |%31s |%30s" % ("Weapon", "Range", "Average damage"))
     print_average_shooting_result(attacking_unit, target)
     print_average_combat_results(attacking_unit, target)
@@ -104,26 +81,20 @@ def calculate_attacks_vs_targets(attacking_unit, targets):
     print("%s\n" % ("-" * 105))
 
 
-class Player:
-
-    def __init__(self, name):
-        self.id = uuid()
-        self.name = name
-
-    def __hash__(self):
-        return hash(self.id)
-
-    def __eq__(self, other):
-        return self.id == other.id
-
-
+# XXX: should this be in its own class?
 class Point:
 
     def __init__(self, x=0., y=0.):
         self.x = x
         self.y = y
 
+    def calculate_distance(self, p):
+        dx = abs(self.x - p.x)
+        dy = abs(self.y - p.y)
+        return math.sqrt(pow(dx, 2) + pow(dy, 2))
+
 FINAL_BATTLE_ROUND = 5
+DEFAULT_VICTORY_POINT_RADIUS = 6
 
 
 class Simulation:
@@ -153,6 +124,9 @@ class Simulation:
         self.models_lost = {unit: 0 for unit in all_units}
         self.locations = {unit: Point() for unit in all_units}
         self.table = Point(48, 72)  # FIXME
+        self.victory_points = []
+        self.victory_point_radius = DEFAULT_VICTORY_POINT_RADIUS
+        self.victory_point_totals = {p1: 0, p2: 0}
         self.setup()
 
     def setup(self):
@@ -166,12 +140,15 @@ class Simulation:
         self.locations[unit] = p
 
     def reset(self):
-        self.setup()
         self.battle_round = 1
         self.turn = 1
         self.remaining_units = deepcopy(self.units)
+        all_units = self.units[self.active_player] + self.units[self.defending_player]
+        self.models_lost = {unit: 0 for unit in all_units}
         self.phases = cycle(self._Phases)
         self.current_phase = next(self.phases)
+        self.victory_point_totals = {self.active_player: 0, self.defending_player: 0}
+        self.setup()
 
     def simulate_damage(self, attacks, hits_on, wounds_on, rend, damage, target_save):
         roll_to_hit = DiceRoller.roll(attacks)  # TODO: re-rolls
@@ -186,7 +163,7 @@ class Simulation:
 
     def simulate_attack(self, unit, target, weapon_type=WeaponTypes.COMBAT):
         total_damage = 0
-        distance = self.calculate_distance(unit, target)
+        distance = self.locations[unit].calculate_distance(self.locations[target])
         for model, count in unit.models_remaining.items():
             if count <= 0:
                 continue
@@ -209,10 +186,10 @@ class Simulation:
         for unit in self.remaining_units[self.active_player]:
             if unit.in_combat:
                 continue  # TODO: retreating
-            target = self.choose_target(unit)
+            target = self.choose_target(unit, self.defending_player)
             # FIXME: hack for testing
-            if self.calculate_distance(unit, target) > Unit.DEFAULT_PILE_IN_DISTANCE:
-                self.move_towards(unit, self.choose_target(unit))
+            if self.locations[unit].calculate_distance(self.locations[target]) > Unit.DEFAULT_PILE_IN_DISTANCE:
+                self.move_towards(unit, self.choose_target(unit, self.defending_player))
 
     def move_towards(self, unit, target):
         # FIXME: grid-based locations may not be good enough here...
@@ -221,7 +198,7 @@ class Simulation:
         unit_location = self.locations[unit]
         target_location = self.locations[target]
         # get the maximum allowed movement distance towards the target
-        d = self.calculate_distance(unit, target)
+        d = self.locations[unit].calculate_distance(self.locations[target])
         # TODO: implement running
         movement = min(unit.movement, d - Unit.DEFAULT_PILE_IN_DISTANCE)
         # the ratio of the distance to the target and the allowed movement in a straight line
@@ -232,15 +209,10 @@ class Simulation:
         new_location = Point(unit_location.x + dx, unit_location.y + dy)
         self.locations[unit] = new_location
 
-    def calculate_distance(self, unit, target):
-        dx = abs(self.locations[unit].x - self.locations[target].x)
-        dy = abs(self.locations[unit].y - self.locations[target].y)
-        return math.sqrt(pow(dx, 2) + pow(dy, 2))
-
     def shooting_phase(self):
         print("%s's shooting phase:\n" % self.active_player.name)
         for unit in self.remaining_units[self.active_player]:
-            target = self.choose_target(unit)
+            target = self.choose_target(unit, self.defending_player)
             wounds = self.simulate_attack(unit, target, WeaponTypes.SHOOTING)
             target.assign_wounds(wounds)
             self.models_lost[target] += wounds
@@ -255,29 +227,31 @@ class Simulation:
                     if not self.remaining_units[player]:
                         pass  # TODO
 
-    def choose_target(self, unit):
+    def choose_target(self, unit, target_player):
         # FIXME: need to implement behaviours and refactor
         # TODO: target selection for shooting, charging, and combat
-        return self.remaining_units[self.defending_player][0]
+        return self.remaining_units[target_player][0]
 
     def charge_phase(self):
         for unit in self.remaining_units[self.active_player]:
             if unit.in_combat:
                 continue
-            target = self.choose_target(unit)
-            distance = self.calculate_distance(unit, target)
-            if distance in range(3, unit.charge_distance + 1):  # add 1 because range is exclusive
+            target = self.choose_target(unit, self.defending_player)
+            distance = self.locations[unit].calculate_distance(self.locations[target])
+            if math.ceil(distance) in range(3, unit.charge_distance + 1):  # add 1 because range is exclusive
                 # TODO: on-charge buffs
                 charge_roll = sum(DiceRoller.roll(2))
                 print("Charge roll: %d" % charge_roll)
                 if charge_roll >= distance:
                     self.locations[unit] = self.locations[target]  # effective 0 distance post-charge
                     unit.in_combat = True
+                    target.in_combat = True
                     print("%s's charge succeeded!" % unit.name)
                 else:
                     print("%s's charge failed!" % unit.name)
 
     def combat_phase(self):
+        print("\n%s's combat phase:\n" % self.active_player.name)
         units_in_combat = {self.active_player: [], self.defending_player: []}
 
         for player, units in self.remaining_units.items():
@@ -287,10 +261,10 @@ class Simulation:
 
         attacking_player = self.active_player
         defending_player = self.defending_player
-        while len(units_in_combat[self.active_player] + units_in_combat[self.defending_player]) > 0:
+        for _ in range(len(units_in_combat[self.active_player] + units_in_combat[self.defending_player])):
             attacking_unit = self.combat_priority(units_in_combat[attacking_player])
-            if attacking_unit:
-                target = self.choose_target(attacking_unit)
+            if attacking_unit and units_in_combat[self.defending_player]:
+                target = self.choose_target(attacking_unit, defending_player)
                 wounds = self.simulate_attack(attacking_unit, target)
                 target.assign_wounds(wounds)
                 self.models_lost[target] += wounds
@@ -298,7 +272,8 @@ class Simulation:
             attacking_player, defending_player = defending_player, attacking_player
 
     def combat_priority(self, units):
-        return units[0]  # FIXME: implement prioritization algorithm
+        # FIXME: implement prioritization algorithm
+        return units[0] if units else None
 
     def battleshock_phase(self):
         print("\nBattleshock phase:\n")
@@ -318,24 +293,45 @@ class Simulation:
             self.models_lost[unit] += fleeing_units  # in case battleshock is triggered again somehow
             self.determine_casualties()
 
+    def end_phase(self):
+        for p in self.victory_points:  # TODO: victory point values and custom battleplans
+            nearby_units = self.determine_nearby_units(p)
+            model_count = {self.active_player: 0, self.defending_player: 0}
+            for player, units in nearby_units.items():
+                for unit in units:
+                    model_count[player] += unit.remaining_models()
+            self.victory_point_totals[self.active_player
+                                      if model_count[self.active_player] > model_count[self.defending_player]
+                                      else self.defending_player] += 1
+
+    def determine_nearby_units(self, p):
+        nearby_units = {self.active_player: [], self.defending_player: []}
+        for player, units in self.remaining_units.items():
+            for unit in units:
+                d = self.locations[unit].calculate_distance(p)
+                if d <= self.victory_point_radius:
+                    nearby_units[player] = unit
+        return nearby_units
+
     def next_phase(self):
         self.current_phase = next(self.phases)
         for player in [self.active_player, self.defending_player]:
             if not self.remaining_units[player]:
                 print('%s has no more units!' % player.name)
                 return False  # TODO: victory points
+        getattr(self, self.current_phase.value + '_phase')()
         if self.current_phase == self._Phases.END:
             print("\n%s\n" % ("-" * 105))
             return self.next_turn()
-        getattr(self, self.current_phase.value + '_phase')()
         return self.next_phase()
 
     def next_turn(self):
         self.turn = (self.turn % 2) + 1  # 1 -> 2 -> 1...
-        # Reset units lost for battleshock purposes
+        # reset units lost for battleshock purposes
         remaining_units = self.remaining_units[self.active_player] + self.remaining_units[self.defending_player]
         self.models_lost = {unit: 0 for unit in remaining_units}
         if self.turn == 2:  # we just incremented the turn, so if the previous turn was turn 1...
+            # swap active and defending players
             self.active_player, self.defending_player = self.defending_player, self.active_player
         else:
             active_player_roll = DiceRoller.d6()
@@ -350,7 +346,6 @@ class Simulation:
     def next_round(self):
         if self.battle_round == FINAL_BATTLE_ROUND:
             return False  # TODO: end battle and victory conditions
-        # Swap active and defending players
         self.battle_round += 1
         return True
 
@@ -363,64 +358,3 @@ class Simulation:
 
     def run(self):
         return self.simulate_round()
-
-
-def run():
-    # Glade guard
-    def peerless_archery(self, target):
-        if self.remaining_models() >= 20:
-            for profile in self.shooting_attacks():
-                profile.to_hit -= 1
-
-    def bodkin_arrows(self, target):
-        for profile in self.shooting_attacks():
-            profile.rend = 3
-
-    # TODO: Khemist
-    def aetheric_augmentation(self, target):
-        for name, profile in self.weapon_profiles.items():
-            profile.extra_attacks += profile.count
-
-    # Rat Ogors
-    # TODO: represent on-charge conditional
-    def rabid_fury(self, target):
-        weapon_profile = self.weapon_profiles["Tearing Claws, Blades, and Fangs"]
-        weapon_profile.extra_attacks = (self.remaining_models() * weapon_profile.attacks *
-                                        (0 if (6 - weapon_profile.bonus_to_hit) > 6
-                                         else to_percentage(6 - weapon_profile.bonus_to_hit)))
-
-    def herded_into_the_fray(self, target):
-        self.weapon_profiles["Tearing Claws, Blades, and Fangs"].bonus_to_hit = 2
-
-    # for unit in attacking_group:
-    #     calculate_attacks_vs_targets(unit, target_group)
-
-    attacking_unit_cls = UNITS['Arkanaut Company']
-    defending_unit_cls = UNITS['Wildwood Rangers']
-    attacking_unit = attacking_unit_cls()
-    # TODO: implement maximums for models <-----
-    # FIXME: models are singletons (sortof) so we need a way of having weapon profile instances
-    # FIXME: need a much better way of accessing model types...
-    attacking_unit.add_models('Arkanaut', 6)
-    attacking_unit.add_models('Arkanaut with Light Skyhook', 3)
-    attacking_unit.add_models('Arkanaut Captain', 1)
-
-    defending_unit = defending_unit_cls()
-    defending_unit.add_models('Ranger', 9)
-    defending_unit.add_models('Warden', 1)
-
-    simulations_to_run = 10
-    simulation = Simulation(
-        p1=Player(name='Duncan'),
-        p2=Player(name='Bjarne'),
-        units_p1=[attacking_unit],
-        units_p2=[defending_unit]
-    )
-    for _ in range(simulations_to_run):
-        simulation.run()
-        simulation.reset()
-        print('\n%s\n' % ('#' * 105))
-
-
-if __name__ == "__main__":
-    run()

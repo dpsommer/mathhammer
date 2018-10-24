@@ -2,9 +2,9 @@ import importlib
 import pkgutil
 import pyclbr
 
+import stats
 import units
 from player import Player
-from stats import Simulation
 from unit import UNITS
 
 
@@ -43,8 +43,11 @@ defending_unit = defending_unit_cls()
 defending_unit.add_models('Ranger', 9)
 defending_unit.add_models('Warden', 1)
 
+# print weapon statlines
+stats.calculate_attacks_vs_targets(attacking_unit, [defending_unit])
+
 simulations_to_run = 10
-simulation = Simulation(
+simulation = stats.Simulation(
     p1=Player(name='Duncan'),
     p2=Player(name='Bjarne'),
     units_p1=[attacking_unit],
